@@ -250,7 +250,17 @@ def apply_model(model, mix, shifts=1, split=True,
             padded_padded_mix = F.pad(padded_mix, (0, training_length - padded_mix.shape[-1]))
             magspec = standalone_magnitude(standalone_spec(padded_padded_mix))
 
+            print(f"padded_mix shape: {padded_mix.shape}")
+            print(f"padded_padded_mix shape: {padded_padded_mix.shape}")
+            print(f"magspec shape: {magspec.shape}")
+            print(f"valid_length: {valid_length}")
+
             out_x, out_xt = model(padded_mix, magspec)
+
+            print(f"out_x shape: {out_x.shape}")
+            print(f"out_xt shape: {out_xt.shape}")
+            print(f"out_x dtype: {out_x.dtype}")
+            print(f"out_xt dtype: {out_xt.dtype}")
 
             # post-steps to apply
             #zout = self._mask(z, x)
@@ -268,6 +278,9 @@ def apply_model(model, mix, shifts=1, split=True,
 
             zout = standalone_mask(magspec, out_x)
             out = standalone_ispec(zout, training_length)
+
+            print(f"masked spectogram shape: {zout.shape}")
+            print(f"out after istft shape: {out.shape}")
 
             out = out_xt + out
             out = out[..., :valid_length]

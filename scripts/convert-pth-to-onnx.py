@@ -31,8 +31,10 @@ if __name__ == '__main__':
     dir_out.mkdir(parents=True, exist_ok=True)
 
     # Load the appropriate model
-    model = get_model(DEMUCS_MODEL)
-    model_name = DEMUCS_MODEL
+    # model = get_model(DEMUCS_MODEL)
+    # model_name = DEMUCS_MODEL
+    model = get_model(DEMUCS_MODEL_FT)
+    model_name = DEMUCS_MODEL_FT
     if args.six_source:
         model = get_model(DEMUCS_MODEL_6S)
         model_name = DEMUCS_MODEL_6S
@@ -58,7 +60,9 @@ if __name__ == '__main__':
         raise TypeError("Unsupported model type")
 
     # Prepare a dummy input tensor
-    dummy_waveform = torch.randn(1, 2, 343980)
+    EIGHT_SECONDS = 343980 # not actually 8 seconds, but this is a good constant amount of samples that fit in the model
+
+    dummy_waveform = torch.randn(1, 2, EIGHT_SECONDS)
 
     # pre-pad the dummy_waveform since we removed padding from NN itself
     #        training_length = int(self.segment * self.samplerate)
@@ -70,6 +74,8 @@ if __name__ == '__main__':
     dummy_waveform = F.pad(dummy_waveform, (0, training_length - dummy_waveform.shape[-1]))
 
     magspec = standalone_magnitude(standalone_spec(dummy_waveform))
+    print(f"magspec shape: {magspec.shape}")
+    print(f"magspec dtype: {magspec.dtype}")
 
     dummy_input = (dummy_waveform, magspec)
 
@@ -83,7 +89,7 @@ if __name__ == '__main__':
             dummy_input,
             onnx_file_path,
             export_params=True,
-            opset_version=17,
+            opset_version=20,
             do_constant_folding=True,
             input_names=['input'],
             output_names=['output']
