@@ -249,6 +249,7 @@ def apply_model(model, mix, shifts=1, split=True,
             # this is the padding previously done in the model
             padded_padded_mix = F.pad(padded_mix, (0, training_length - padded_mix.shape[-1]))
             magspec = standalone_magnitude(standalone_spec(padded_padded_mix))
+            Exception("Debugging") # TODO remove this line
 
             print(f"padded_mix shape: {padded_mix.shape}")
             print(f"padded_padded_mix shape: {padded_padded_mix.shape}")

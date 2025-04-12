@@ -41,6 +41,7 @@ def standalone_spec(x, nfft=4096, hop_length=4096//4):
     x = pad1d(x, (pad, pad + le * hl - x.shape[-1]), mode="reflect")
 
     z = spectro(x, nfft, hl)[..., :-1, :]
+    print("pytorch stft complex after view shape", z.shape)
     assert z.shape[-1] == le + 4, (z.shape, x.shape, le)
     z = z[..., 2: 2 + le]
     return z
@@ -50,9 +51,11 @@ def standalone_magnitude(z, cac=True):
     # return the magnitude of the spectrogram, except when cac is True,
     # in which case we just move the complex dimension to the channel one.
     if cac:
-        B, C, Fr, T = z.shape
-        m = torch.view_as_real(z).permute(0, 1, 4, 2, 3)
-        m = m.reshape(B, C * 2, Fr, T)
+        B, C, realimag, Fr, T,  = z.shape
+        print('b, c, realimag, fr, T', B, C, realimag, Fr, T)
+        # print("zshape torch stft real shape", torch.view_as_real(z).shape)
+        # m = torch.view_as_real(z).permute(0, 1, 4, 2, 3)
+        m = z.reshape(B, C * 2, Fr, T)
     else:
         m = z.abs()
     return m
