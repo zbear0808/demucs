@@ -608,6 +608,9 @@ class HTDemucs(nn.Module):
         #mag = self._magnitude(z)
         #x = mag
 
+        padded_padded_mix = F.pad(mix, (0, training_length - mix.shape[-1]))
+        x = standalone_magnitude(standalone_spec(padded_padded_mix))
+
         B, C, Fq, T = x.shape
 
         # unlike previous Demucs, we always normalize because it is easier.
