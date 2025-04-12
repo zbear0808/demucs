@@ -8,8 +8,11 @@
 import torch as th
 from demucs.stftProcess import STFT_Process, STFT_TYPE, ISTFT_TYPE, WINDOW_FUNCTIONS
 
+hasWrittenFile = [False]
+
 
 def spectro(x, n_fft=512, hop_length=None, pad=0):
+    
     print('spectro padding', pad)
     *other, length = x.shape
     x = x.reshape(-1, length)
@@ -70,7 +73,20 @@ def spectro(x, n_fft=512, hop_length=None, pad=0):
     z = th.view_as_real(z)
     print("torch stft realimag shape", z.shape)
     channels, freqs, frame, realimag = z.shape
-    return z.reshape(1 , channels, freqs, frame, 2).permute(0, 1, 4, 2, 3)
+
+    
+    if not hasWrittenFile[0]:
+        hasWrittenFile[0] = True
+        # Save the output tensor to a file for debugging
+        with open("output_tensor.txt", "w") as f:
+            f.write(str(output_tensor.tolist()))
+        with open("z.txt", "w") as f:
+            f.write(str(z.tolist()))
+        with open("difference.txt", "w") as f:
+            f.write(str((z - output_tensor).tolist()))
+    # print("difference", z - output_tensor)
+
+    # return z.reshape(1 , channels, freqs, frame, 2).permute(0, 1, 4, 2, 3)
 
     channels, freqs, frame, realimag = output_tensor.shape
     print("output_tensor shape", output_tensor.shape)

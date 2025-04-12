@@ -52,6 +52,8 @@ class STFT_Process(torch.nn.Module):
         self.max_frames = max_frames
         self.window_type = window_type
         self.half_n_fft = n_fft // 2  # Precompute once
+
+        self.normalization_factor = n_fft ** -0.5 # frame_length ^-0.5
         
         # Get window function and compute window once
         window = WINDOW_FUNCTIONS.get(window_type, DEFAULT_WINDOW_FN)(n_fft).float()
@@ -141,7 +143,7 @@ class STFT_Process(torch.nn.Module):
         real_part = torch.nn.functional.conv1d(x_padded, self.cos_kernel, stride=self.hop_len)
         image_part = torch.nn.functional.conv1d(x_padded, self.sin_kernel, stride=self.hop_len)
         
-        return real_part, image_part
+        return real_part * self.normalization_factor, image_part * self.normalization_factor
 
     def istft_A_forward(self, magnitude, phase):
         # Pre-compute trig values
