@@ -10,12 +10,13 @@ from demucs.stftProcess import STFT_Process, STFT_TYPE, ISTFT_TYPE, WINDOW_FUNCT
 
 
 def spectro(x, n_fft=512, hop_length=None, pad=0):
+    print('spectro padding', pad)
     *other, length = x.shape
     x = x.reshape(-1, length)
     print("x shape", x.shape)
     custom_stft = STFT_Process(
         model_type='stft_B', 
-        n_fft=n_fft, 
+        n_fft=n_fft,  #* (1 + pad), 
         hop_len=hop_length or n_fft // 4, 
         max_frames=0,  # Not important here.
         window_type='hann'
@@ -40,7 +41,8 @@ def spectro(x, n_fft=512, hop_length=None, pad=0):
     # Stack left and right channels along the first dimension
     # Shape becomes (2, freqs, frames, 2)
     output_tensor = th.stack((left_complex, right_complex), dim=0)
-
+    print("onnx left shafe", left_complex.shape)
+    print("onnx right shape", right_complex.shape)
     print("output onnx stft realimag shape", output_tensor.shape)
 
 
@@ -55,18 +57,21 @@ def spectro(x, n_fft=512, hop_length=None, pad=0):
 
 
 
-    # z = th.stft(x,
-    #             n_fft * (1 + pad),
-    #             hop_length or n_fft // 4,
-    #             window=th.hann_window(n_fft).to(x),
-    #             win_length=n_fft,
-    #             normalized=True,
-    #             center=True,
-    #             return_complex=True,
-    #             pad_mode='reflect')
-    # print("torch stft complex shape", z.shape)
-    # _, freqs, frame = z.shape
-    # return z.view(*other, freqs, frame) 
+    z = th.stft(x,
+                n_fft * (1 + pad),
+                hop_length or n_fft // 4,
+                window=th.hann_window(n_fft).to(x),
+                win_length=n_fft,
+                normalized=True,
+                center=True,
+                return_complex=True,
+                pad_mode='reflect')
+    print("torch stft complex shape", z.shape)
+    z = th.view_as_real(z)
+    print("torch stft realimag shape", z.shape)
+    channels, freqs, frame, realimag = z.shape
+    return z.reshape(1 , channels, freqs, frame, 2).permute(0, 1, 4, 2, 3)
+
     channels, freqs, frame, realimag = output_tensor.shape
     print("output_tensor shape", output_tensor.shape)
     return output_tensor.reshape(1, channels, freqs, frame, 2).permute(0, 1, 4, 2, 3) 
