@@ -77,7 +77,7 @@ if __name__ == '__main__':
     print(f"magspec shape: {magspec.shape}")
     print(f"magspec dtype: {magspec.dtype}")
 
-    dummy_input = (dummy_waveform, magspec)
+    dummy_input = (dummy_waveform, )
 
     # Define output file name
     onnx_file_path = dir_out / f"{model_name}.onnx"
@@ -91,8 +91,10 @@ if __name__ == '__main__':
             export_params=True,
             opset_version=20,
             do_constant_folding=True,
-            input_names=['input'],
-            output_names=['output']
+            # dynamo = True,
+            report = True,
+            input_names=['input_audio'],
+            output_names=['outx', 'outxt'],
         )
         print(f"Model successfully converted to ONNX format at {onnx_file_path}")
     except Exception as e:

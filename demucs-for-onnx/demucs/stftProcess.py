@@ -1,6 +1,9 @@
+import math
 import numpy as np
 import onnxruntime as ort
 import torch
+import torch.nn.functional as F
+import typing as tp
 # from demucs.hdemucs import pad1d
 
 # https://github.com/DakeQQ/STFT-ISTFT-ONNX/blob/main/STFT_Process.py
@@ -41,6 +44,28 @@ WINDOW_FUNCTIONS = {
 DEFAULT_WINDOW_FN = torch.hann_window
 # Initialize window - only compute once
 WINDOW = WINDOW_FUNCTIONS.get(WINDOW_TYPE, DEFAULT_WINDOW_FN)(NFFT).float()
+
+
+#exact copy from hdemucs.py
+def pad1d(x: torch.Tensor, paddings: tp.Tuple[int, int], mode: str = 'constant', value: float = 0.):
+    """Tiny wrapper around F.pad, just to allow for reflect padding on small input.
+    If this is the case, we insert extra 0 padding to the right before the reflection happen."""
+    x0 = x
+    length = x.shape[-1]
+    padding_left, padding_right = paddings
+    if mode == 'reflect':
+        max_pad = max(padding_left, padding_right)
+        if length <= max_pad:
+            extra_pad = max_pad - length + 1
+            extra_pad_right = min(padding_right, extra_pad)
+            extra_pad_left = extra_pad - extra_pad_right
+            paddings = (padding_left - extra_pad_left, padding_right - extra_pad_right)
+            x = F.pad(x, (extra_pad_left, extra_pad_right))
+    out = F.pad(x, paddings, mode, value)
+    assert out.shape[-1] == length + padding_left + padding_right
+    # The following assertion might fail if extra padding was added, relax it or remove.
+    # assert (out[..., padding_left: padding_left + length] == x0).all()
+    return out
 
 
 class STFT_Process(torch.nn.Module):
@@ -144,6 +169,18 @@ class STFT_Process(torch.nn.Module):
         image_part = torch.nn.functional.conv1d(x_padded, self.sin_kernel, stride=self.hop_len)
         
         return real_part * self.normalization_factor, image_part * self.normalization_factor
+    
+    def custom_standalon_spec(self, x, nfft=4096, hop_length=4096//4):
+        le = int(math.ceil(x.shape[-1] / hop_length))
+        pad = hop_length // 2 * 3
+        x = pad1d(x, (pad, pad + le * hop_length - x.shape[-1]), mode="reflect")
+        return x # TODO, remove this return and import spectro
+        z = spectro(x, nfft, hop_length)[..., :-1, :]
+
+        print("pytorch stft complex after view shape", z.shape)
+        # assert z.shape[-1] == le + 4, (z.shape, x.shape, le)
+        z = z[..., 2: 2 + le]
+        return z
 
     def istft_A_forward(self, magnitude, phase):
         # Pre-compute trig values
@@ -330,4 +367,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-    

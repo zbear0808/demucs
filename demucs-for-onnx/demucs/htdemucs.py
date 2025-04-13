@@ -590,7 +590,7 @@ class HTDemucs(nn.Module):
 
     # supply the cac stft with the time-domain waveform as input
     # skip stft/istft in the network itself
-    def forward(self, mix, x):
+    def forward(self, mix):
         #length = mix.shape[-1]
         #length_pre_pad = None
         #if self.use_train_segment:
