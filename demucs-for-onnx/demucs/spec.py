@@ -8,8 +8,6 @@
 import torch as th
 from demucs.stftProcess import STFT_Process, STFT_TYPE, ISTFT_TYPE, WINDOW_FUNCTIONS
 
-hasWrittenFile = [False]
-
 
 def spectro(x, n_fft=512, hop_length=None, pad=0):
     
@@ -29,12 +27,12 @@ def spectro(x, n_fft=512, hop_length=None, pad=0):
     left_real, left_imag = custom_stft(x[0,:].reshape(1,1,length), 'reflect')
     right_real, right_imag = custom_stft(x[1,:].reshape(1,1,length), 'reflect')
 
-    # custom_stft likely returns shape (1, 1, freqs, frames)
-    # Squeeze the first two dimensions (batch, channel)
-    left_real = left_real.squeeze(0).squeeze(0)    # Shape: (freqs, frames)
-    left_imag = left_imag.squeeze(0).squeeze(0)    # Shape: (freqs, frames)
-    right_real = right_real.squeeze(0).squeeze(0)  # Shape: (freqs, frames)
-    right_imag = right_imag.squeeze(0).squeeze(0)  # Shape: (freqs, frames)
+    print("onnx left shape pre stacking", left_real.shape)
+    _, freqs, frames =  left_real.shape
+    # left_real = left_real.reshape(freqs,frames)   # Shape: (freqs, frames)
+    # left_imag = left_imag.reshape(freqs,frames)   # Shape: (freqs, frames)
+    # right_real = right_real.reshape(freqs,frames) # Shape: (freqs, frames)
+    # right_imag = right_imag.reshape(freqs,frames) # Shape: (freqs, frames)
 
     # Stack real and imaginary parts for each channel along the last dimension
     # Shape becomes (freqs, frames, 2)
@@ -43,7 +41,7 @@ def spectro(x, n_fft=512, hop_length=None, pad=0):
 
     # Stack left and right channels along the first dimension
     # Shape becomes (2, freqs, frames, 2)
-    output_tensor = th.stack((left_complex, right_complex), dim=0)
+    output_tensor = th.cat((left_complex, right_complex), dim=0)
     print("onnx left shafe", left_complex.shape)
     print("onnx right shape", right_complex.shape)
     print("output onnx stft realimag shape", output_tensor.shape)
@@ -56,35 +54,21 @@ def spectro(x, n_fft=512, hop_length=None, pad=0):
     # If needed, we could reshape based on *other, but let's assume simple stereo for now.
     # Example: return output_tensor.view(*other, 2, freqs, frames, 2) if needed
 
-    # return output_tensor
 
+    # z = th.stft(x,
+    #             n_fft * (1 + pad),
+    #             hop_length or n_fft // 4,
+    #             window=th.hann_window(n_fft).to(x),
+    #             win_length=n_fft,
+    #             normalized=True,
+    #             center=True,
+    #             return_complex=True,
+    #             pad_mode='reflect')
+    # print("torch stft complex shape", z.shape)
+    # z = th.view_as_real(z)
+    # print("torch stft realimag shape", z.shape)
+    # channels, freqs, frame, realimag = z.shape
 
-
-    z = th.stft(x,
-                n_fft * (1 + pad),
-                hop_length or n_fft // 4,
-                window=th.hann_window(n_fft).to(x),
-                win_length=n_fft,
-                normalized=True,
-                center=True,
-                return_complex=True,
-                pad_mode='reflect')
-    print("torch stft complex shape", z.shape)
-    z = th.view_as_real(z)
-    print("torch stft realimag shape", z.shape)
-    channels, freqs, frame, realimag = z.shape
-
-    
-    if not hasWrittenFile[0]:
-        hasWrittenFile[0] = True
-        # Save the output tensor to a file for debugging
-        with open("output_tensor.txt", "w") as f:
-            f.write(str(output_tensor.tolist()))
-        with open("z.txt", "w") as f:
-            f.write(str(z.tolist()))
-        with open("difference.txt", "w") as f:
-            f.write(str((z - output_tensor).tolist()))
-    # print("difference", z - output_tensor)
 
     # return z.reshape(1 , channels, freqs, frame, 2).permute(0, 1, 4, 2, 3)
 

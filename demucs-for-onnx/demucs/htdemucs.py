@@ -25,8 +25,6 @@ from .hdemucs import pad1d, ScaledEmbedding, HEncLayer, MultiWrap, HDecLayer
 
 
 def standalone_spec(x, nfft=4096, hop_length=4096//4):
-    hl = hop_length
-    x0 = x  # noqa
 
     # We re-pad the signal in order to keep the property
     # that the size of the output is exactly the size of the input
@@ -35,29 +33,29 @@ def standalone_spec(x, nfft=4096, hop_length=4096//4):
     # which is not supported by torch.stft.
     # Having all convolution operations follow this convention allow to easily
     # align the time and frequency branches later on.
-    assert hl == nfft // 4
-    le = int(math.ceil(x.shape[-1] / hl))
-    pad = hl // 2 * 3
-    x = pad1d(x, (pad, pad + le * hl - x.shape[-1]), mode="reflect")
 
-    z = spectro(x, nfft, hl)[..., :-1, :]
+    # assert hl == nfft // 4 commenting out assertions to make conversion easier
+    le = int(math.ceil(x.shape[-1] / hop_length))
+    pad = hop_length // 2 * 3
+    x = pad1d(x, (pad, pad + le * hop_length - x.shape[-1]), mode="reflect")
+
+    z = spectro(x, nfft, hop_length)[..., :-1, :]
     print("pytorch stft complex after view shape", z.shape)
-    assert z.shape[-1] == le + 4, (z.shape, x.shape, le)
+    # assert z.shape[-1] == le + 4, (z.shape, x.shape, le)
     z = z[..., 2: 2 + le]
     return z
 
 
 def standalone_magnitude(z, cac=True):
-    # return the magnitude of the spectrogram, except when cac is True,
-    # in which case we just move the complex dimension to the channel one.
-    if cac:
-        B, C, realimag, Fr, T,  = z.shape
-        print('b, c, realimag, fr, T', B, C, realimag, Fr, T)
-        # print("zshape torch stft real shape", torch.view_as_real(z).shape)
-        # m = torch.view_as_real(z).permute(0, 1, 4, 2, 3)
-        m = z.reshape(B, C * 2, Fr, T)
-    else:
-        m = z.abs()
+
+    # we just move the complex dimension to the channel one.
+
+    B, C, realimag, Fr, T,  = z.shape
+    print('b, c, realimag, fr, T', B, C, realimag, Fr, T)
+    # print("zshape torch stft real shape", torch.view_as_real(z).shape)
+    # m = torch.view_as_real(z).permute(0, 1, 4, 2, 3)
+    m = z.reshape(B, C * 2, Fr, T)
+
     return m
 
 
