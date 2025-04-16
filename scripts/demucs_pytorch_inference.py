@@ -56,6 +56,7 @@ if __name__ == '__main__':
     sources = sources * ref.std() + ref.mean()
     print(sources.shape)
 
+    # torch.profiler.profile
     for target_idx in range(4):
         target_name = target_digit_map[target_idx]
         print(f"Saving target {target_name}")

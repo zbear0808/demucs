@@ -6,7 +6,7 @@
 """Conveniance wrapper to perform STFT and iSTFT"""
 
 import torch as th
-from demucs.stftProcess import STFT_Process, STFT_TYPE, ISTFT_TYPE, WINDOW_FUNCTIONS
+from .stftProcess import STFT_Process, STFT_TYPE, ISTFT_TYPE, WINDOW_FUNCTIONS
 
 
 def spectro(x, n_fft=512, hop_length=None, pad=0):

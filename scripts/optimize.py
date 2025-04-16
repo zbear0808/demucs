@@ -10,7 +10,7 @@ import onnx
 # i don't want to break my demucs env
 
 
-model = onnx.load("htdemucs_ft.onnx")
+model = onnx.load("simplified.onnx")
 
 print('checking model')
 ch = onnx.checker.check_model(model, full_check=True, check_custom_domain=True)

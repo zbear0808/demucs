@@ -92,6 +92,8 @@ if __name__ == '__main__':
             opset_version=20,
             do_constant_folding=True,
             # dynamo = True,
+            # strict=True,
+            external_data=True, # exports weights to separate files
             report = True,
             input_names=['input_audio'],
             output_names=['outx', 'outxt'],

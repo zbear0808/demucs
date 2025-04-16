@@ -116,11 +116,14 @@ def main():
     out_x = torch.from_numpy(onnx_out_x)
     out_xt = torch.from_numpy(onnx_out_xt)
 
+    print(f"out_x shape {out_x.shape}")
+    print(f"out_xt shape {out_xt.shape}")
+
     # Apply mask (using the PyTorch magspec tensor)
 
-    magspec = standalone_magnitude(standalone_spec(input_snippet, nfft=NFFT, hop_length=HOP_LENGTH))
+    # magspec = standalone_magnitude(standalone_spec(input_snippet, nfft=NFFT, hop_length=HOP_LENGTH))
     print("Applying mask...")
-    zout = standalone_mask(magspec, out_x) # magspec is [B, C*2, F, T], out_x is [B, S, C*2, F, T]
+    zout = standalone_mask(out_x) # magspec is [B, C*2, F, T], out_x is [B, S, C*2, F, T]
     print(f"Masked complex spectrogram (zout) shape: {zout.shape}") # Should be [B, S, C, F, T] complex
 
     # Inverse STFT
@@ -132,15 +135,16 @@ def main():
     # Combine with time-domain output
     print("Combining time and frequency components...")
     # Ensure shapes match before adding: out_xt should be [B, S, C, T_train]
-    if out_xt.shape != final_out_component.shape:
-         print(f"Warning: Shape mismatch between out_xt {out_xt.shape} and final_out_component {final_out_component.shape}. Check ONNX output shapes.")
-         # Attempt to trim/pad out_xt if necessary, assuming time dimension mismatch
-         diff = out_xt.shape[-1] - final_out_component.shape[-1]
-         if diff > 0:
-             out_xt = out_xt[..., :final_out_component.shape[-1]]
-         elif diff < 0:
-             out_xt = F.pad(out_xt, (0, -diff))
-         print(f"Adjusted out_xt shape: {out_xt.shape}")
+
+    # if out_xt.shape != final_out_component.shape:
+    #      print(f"Warning: Shape mismatch between out_xt {out_xt.shape} and final_out_component {final_out_component.shape}. Check ONNX output shapes.")
+    #      # Attempt to trim/pad out_xt if necessary, assuming time dimension mismatch
+    #      diff = out_xt.shape[-1] - final_out_component.shape[-1]
+    #      if diff > 0:
+    #          out_xt = out_xt[..., :final_out_component.shape[-1]]
+    #      elif diff < 0:
+    #          out_xt = F.pad(out_xt, (0, -diff))
+    #      print(f"Adjusted out_xt shape: {out_xt.shape}")
 
 
     final_combined_out = out_xt + final_out_component

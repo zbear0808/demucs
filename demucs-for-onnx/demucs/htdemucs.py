@@ -70,22 +70,14 @@ def standalone_ispec(z, length=None, scale=0, hop_length=4096//4):
     return x
 
 
-def standalone_mask(z, m, cac=True, wiener_iters=0, training=False, end_iters=0):
+def standalone_mask(m):
     # Apply masking given the mixture spectrogram `z` and the estimated mask `m`.
     # If `cac` is True, `m` is actually a full spectrogram and `z` is ignored.
-    niters = wiener_iters
-    if cac:
-        B, S, C, Fr, T = m.shape
-        out = m.view(B, S, -1, 2, Fr, T).permute(0, 1, 2, 4, 5, 3)
-        out = torch.view_as_complex(out.contiguous())
-        return out
-    if training:
-        niters = end_iters
-    if niters < 0:
-        z = z[:, None]
-        return z / (1e-8 + z.abs()) * m
-    #else:
-    #    return self._wiener(m, z, niters)
+    B, S, C, Fr, T = m.shape
+    out = m.view(B, S, -1, 2, Fr, T).permute(0, 1, 2, 4, 5, 3)
+    out = torch.view_as_complex(out.contiguous())
+    return out
+
 
 
 class HTDemucs(nn.Module):
@@ -303,7 +295,7 @@ class HTDemucs(nn.Module):
         self.wiener_iters = wiener_iters
         self.end_iters = end_iters
         self.freq_emb = None
-        assert wiener_iters == end_iters
+        # assert wiener_iters == end_iters
 
         self.encoder = nn.ModuleList()
         self.decoder = nn.ModuleList()
@@ -695,13 +687,9 @@ class HTDemucs(nn.Module):
         x = x.view(B, S, -1, Fq, T)
         x = x * std[:, None] + mean[:, None]
 
-        if self.use_train_segment:
-            if self.training:
-                xt = xt.view(B, S, -1, length)
-            else:
-                xt = xt.view(B, S, -1, training_length)
-        else:
-            xt = xt.view(B, S, -1, length)
+
+        xt = xt.view(B, S, -1, training_length)
+
         xt = xt * stdt[:, None] + meant[:, None]
 
         # again, skipping the istft step for outside of the network
